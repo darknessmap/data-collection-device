@@ -42,7 +42,7 @@
 
 <p>The Darkness Map encompasses both data collection and visualization of nighttime light levels. You can add to the map by downloading the app for iPhone or Android, but you can also contribute data by creating your own data collection device. This tutorial will cover how to build an Arduino powered data logger with a light intensity sensor, and how to add the data you collect to darknessmap.com. Since the sensor modules are attached to the Arduino on a breadboard, it's fairly simple to swap out the light sensor for a different sensor of your choosing. You can log data about temperature, air quality, noise, and many other environmental factors to use in your own projects.</p>
 
-<p>Insert picture of finished Data Collection Device</p>
+<p><img src="images/DataLogger_night.jpb" alt="Darkness Map Data Collection Device" /></p>
 
 <h3>Parts You Need</h3>
 
@@ -54,7 +54,7 @@
 <ul><a href="http://www.adafruit.com/products/439">TSL2561 Digital Luminosity/Lux/Light Sensor</a></ul>
 <ul><a href="http://www.adafruit.com/products/64">Half-size breadboard</a></ul>
 <ul><a href="http://www.adafruit.com/products/380">CR1220 Coin Cell Battery</a> - also available at drug stores, other online resellers</ul>
-<ul><a href="MicroSD card</ul>
+<ul><a href="http://tinyurl.com/4clblk">MicroSD card</a>- you can also repurpose one from an old mobile phone</ul>
 <ul><a href="http://www.adafruit.com/products/80">9V Battery clip</a></ul>
 <ul>9V Battery</ul>
 
@@ -225,8 +225,15 @@ void loop()
 <p>We'll be using the TSL2561 Arduino libray from Adafruit. You can download it <a href="https://github.com/adafruit/TSL2561-Arduino-Library">here,</a> unzip it, and put in the Arduino libraries folder. If Arduino is open restart it for the library to appear in the Examples dropdown choices. Open the example sketch and upload it to the Arduino. Press the serial monitor to make sure it's reading data. Wave your hand over the sensor to see if that changes the light values. Once you're satisfied that your sensor is working, upload the following code to the Arduino:</p>
 
 <pre><code>
+// Darkness Map Data Collection Device
+// Genevieve Hoffman, 2012
+// TinyGPS Library, by Mikal Hart, download here: http://arduiniana.org/libraries/tinygps/
+// TSL2561 Library, by Ladyada (Limor Fried), download here: https://github.com/adafruit/TSL2561-Arduino-Library
+// RTClib, by Ladyada (Limor Fried), download here: https://github.com/adafruit/RTClib
+// RTClib originally developed by Jeelabs: https://github.com/jcw/rtclib
+
 #include "Wire.h"
-#include "TSL2561.h" 
+#include "TSL2561.h"
 #include "SD.h"
 #include "SoftwareSerial.h"
 #include "TinyGPS.h"
@@ -238,19 +245,21 @@ File dataFile;
 
 int sensorPin = A0;  // input pin from sensor
 int lux = 0; // variable to store the value coming from sensor
-TSL2561 lightSensor(TSL2561_ADDR_FLOAT); 
+TSL2561 lightSensor(TSL2561_ADDR_FLOAT);
 
 TinyGPS gps;
 SoftwareSerial ss(3, 4);
 
-void setup()  
+
+void setup() 
 {
   Serial.begin(115200);
   Serial.print("Initializing SD card...");
   ss.begin(9600);
   pinMode(chipSelect, OUTPUT);
   RTC.adjust(DateTime(__DATE__, __TIME__));
-  
+
+ 
   // see if the card is present and can be initialized:
   if (!SD.begin(chipSelect)) {
     Serial.println("Card failed, or not present");
@@ -258,14 +267,14 @@ void setup()
     while (1) ;
   }
   Serial.println("card initialized.");
-  
+ 
   // Open up the file we're going to log to!
-  dataFile = SD.open("Datalog.txt", FILE_WRITE);
+  dataFile = SD.open("Data5.txt", FILE_WRITE);
   if (! dataFile) {
     Serial.println("error opening datalog.txt");
     // Wait forever since we cant write data
     while (1) ;
-  }  
+  } 
     lightSensor.begin();
     if (lightSensor.begin()) {
     Serial.println("Found sensor");
@@ -274,19 +283,19 @@ void setup()
     while (1);
   }
  
-  //lightSensor.setGain(TSL2561_GAIN_0X);         // set no gain (for bright situtations) 
+  //lightSensor.setGain(TSL2561_GAIN_0X);         // set no gain (for bright situtations)
   lightSensor.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
   //lightSensor.setTiming(TSL2561_INTEGRATIONTIME_13MS);  // shortest integration time (bright light)
-  //lightSensor.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
-  lightSensor.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
+//lightSensor.setTiming(TSL2561_INTEGRATIONTIME_101MS);  // medium integration time (medium light)
+lightSensor.setTiming(TSL2561_INTEGRATIONTIME_402MS);  // longest integration time (dim light)
 }
 
-void loop()                    
+void loop()                     // run over and over again
 {
   DateTime now = RTC.now();
   bool newData = false;
 
- for (unsigned long start = millis(); millis() - start < 1000;)
+for (unsigned long start = millis(); millis() - start < 1000;)
   {
     while (ss.available())
     {
@@ -300,7 +309,7 @@ void loop()
      uint16_t ir, full;
      ir = lum >> 16;
      full = lum & 0xFFFF;
-     lux = lightSensor.calculateLux(full, ir);     
+     lux = lightSensor.calculateLux(full, ir);    
   }
 
     if (newData)
@@ -313,7 +322,7 @@ void loop()
     gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age);
         char sz[32];
     sprintf(sz, "%02d/%02d/%02d, %02d:%02d:%02d,  ",
-     month, day, year, hour, minute, second);    
+     month, day, year, hour, minute, second);
   
     Serial.print("");
     Serial.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flon, 6);
@@ -324,7 +333,7 @@ void loop()
     Serial.print("unixtime: ");
     Serial.print(now.unixtime());
     Serial.print(", Lux: "); Serial.println(lux);
-    
+   
     dataFile.print("");
     dataFile.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flon, 6);
     dataFile.print(", ");
@@ -335,7 +344,7 @@ void loop()
     dataFile.println(now.unixtime());
   }
 
-  dataFile.flush(); 
+  dataFile.flush();
   delay(500);
 }</code></pre>
 
